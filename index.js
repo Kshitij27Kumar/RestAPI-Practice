@@ -38,15 +38,19 @@ app.get('/api/products/:id', (req, res) => {
   return res.json(product)
 })
 
-//Insert a product
-app.use(express.json())
-app.post('/api/products', (req, res) => {
+function validation(body) {
   const schema = Joi.object({
     name: Joi.string().min(3).max(20).required(),
     price: Joi.number().required(),
   })
 
-  const { error } = schema.validate(req.body)
+  return schema.validate(body)
+}
+
+//Insert a product
+app.use(express.json())
+app.post('/api/products', (req, res) => {
+  const { error } = validation(req.body)
 
   if (error) {
     return res.status(400).json({
@@ -60,6 +64,49 @@ app.post('/api/products', (req, res) => {
   }
   products.push(product)
   return res.json(products)
+})
+
+//Update a product using PUT method
+app.put('/api/products/:id', (req, res) => {
+  const { error } = validation(req.body)
+
+  if (error) {
+    return res.status(400).json({
+      message: error.details[0].message,
+    })
+  }
+
+  const index = products.findIndex((prod) => prod.id === req.params.id)
+  if (index == -1) {
+    return res.status(404).json({
+      message: 'Product not available with this id',
+    })
+  }
+
+  products[index].name = req.body.name
+  products[index].price = req.body.price
+
+  return res.json({
+    product: products[index],
+  })
+})
+
+//Update a product using PATCH method
+app.patch('/api/products/:id', (req, res) => {
+  const index = products.findIndex((prod) => prod.id === req.params.id)
+  if (index == -1) {
+    return res.status(404).json({
+      message: 'Product not available with this id',
+    })
+  }
+
+  let updateProduct = {
+    ...products[index],
+    ...req.body,
+  }
+
+  products[index] = updateProduct
+  return res.json(updateProduct)
 })
 
 app.listen(3000, () => console.log('Server is running on port 3000'))
